@@ -1,0 +1,168 @@
+from dataclasses import dataclass
+import random
+import time
+
+
+@dataclass
+class Investidor:
+    nome: str
+    foco: str
+    aporte_base: float
+    exigencia_tracao: int
+
+
+INVESTIDORES: list[Investidor] = [
+    Investidor("Anjo Horizonte", "Estágio Inicial", 80_000.0, 150),
+    Investidor("Fundo Vértice", "Crescimento Rápido", 200_000.0, 450),
+    Investidor("Capital Prisma", "Eficiência Operacional", 140_000.0, 280),
+    Investidor("Ventures Atlântico", "Escala Global", 350_000.0, 800),
+]
+
+EVENTOS_MERCADO = [
+    ("viral", "Um criador de conteúdo elogiou o produto organicamente!"),
+    ("bug", "Um pico de tráfego derrubou o sistema por algumas horas."),
+    ("concorrente", "Um concorrente anunciou um desconto agressivo."),
+    ("premio", "A startup foi selecionada em um programa de inovação."),
+    ("churn", "Mudança de hábito do mercado elevou o cancelamento temporário."),
+]
+
+
+class SimuladorStartup:
+    """Simula a gestão de uma startup ao longo de meses com eventos aleatórios."""
+
+    def __init__(self, nome: str = "PulseFlow", meses: int = 12) -> None:
+        self.nome = nome
+        self.meses = meses
+        self.mes_atual = 1
+        self.caixa = 180_000.0
+        self.usuarios = 120
+        self.receita_mensal = 4_800.0
+        self.custo_fixo = 26_000.0
+        self.produto_qualidade = 55
+        self.equipe = 4
+        self.historico: list[str] = []
+
+    def _limitar_metricas(self) -> None:
+        self.usuarios = max(0, self.usuarios)
+        self.receita_mensal = max(0.0, self.receita_mensal)
+        self.produto_qualidade = max(10, min(100, self.produto_qualidade))
+        self.equipe = max(1, self.equipe)
+
+    def valuation_estimado(self) -> float:
+        arr_equivalente = self.receita_mensal * 12
+        multiplicador = 3.5 + (self.produto_qualidade / 40.0)
+        return max(120_000.0, arr_equivalente * multiplicador + self.usuarios * 80.0)
+
+    def exibir_painel(self) -> None:
+        burn_liquido = self.custo_fixo - self.receita_mensal
+        print("\n" + "=" * 58)
+        print(f" STARTUP {self.nome.upper()} | MÊS {self.mes_atual}/{self.meses} ")
+        print("=" * 58)
+        print(f" Caixa          : R$ {self.caixa:11,.2f}")
+        print(f" Receita/mês    : R$ {self.receita_mensal:11,.2f} | Custo/mês: R$ {self.custo_fixo:10,.2f}")
+        print(f" Burn líquido   : R$ {burn_liquido:11,.2f} | Valuation: R$ {self.valuation_estimado():11,.2f}")
+        print(f" Usuários ativos: {self.usuarios:11d} | Qualidade: {self.produto_qualidade:3d}/100 | Equipe: {self.equipe}")
+        print("-" * 58)
+
+    def aplicar_evento_aleatorio(self) -> None:
+        tipo, descricao = random.choice(EVENTOS_MERCADO)
+        if tipo == "viral":
+            ganho_u = random.randint(60, 180)
+            self.usuarios += ganho_u
+            self.receita_mensal += ganho_u * random.uniform(25.0, 45.0)
+            msg = f"{descricao} (+{ganho_u} usuários)"
+        elif tipo == "bug":
+            perda_q = random.randint(5, 12)
+            perda_u = random.randint(15, 50)
+            self.produto_qualidade -= perda_q
+            self.usuarios -= perda_u
+            msg = f"{descricao} (-{perda_q} qualidade, -{perda_u} usuários)"
+        elif tipo == "concorrente":
+            queda_rec = self.receita_mensal * random.uniform(0.08, 0.18)
+            self.receita_mensal -= queda_rec
+            msg = f"{descricao} (-R$ {queda_rec:,.2f} na receita mensal)"
+        elif tipo == "premio":
+            bonus_caixa = random.uniform(15_000.0, 40_000.0)
+            self.caixa += bonus_caixa
+            self.usuarios += 40
+            msg = f"{descricao} (+R$ {bonus_caixa:,.2f} de grant e +40 usuários)"
+        else:
+            perda_u = random.randint(20, 65)
+            self.usuarios -= perda_u
+            self.receita_mensal -= perda_u * 20.0
+            msg = f"{descricao} (-{perda_u} usuários)"
+
+        print(f"[MERCADO] {msg}")
+        self.historico.append(f"Mês {self.mes_atual}: {msg}")
+
+    def decidir_acao(self, automatico: bool) -> str:
+        if not automatico:
+            print("\nAções estratégicas do mês:")
+            print("  [1] Investir em aquisição de clientes (R$ 22.000 -> +Usuários e +Receita)")
+            print("  [2] Melhorar o produto e reduzir churn (R$ 18.000 -> +Qualidade)")
+            print("  [3] Contratar talento chave (R$ 15.000 + R$ 6.500/mês de custo)")
+            print("  [4] Buscar rodada de investimento")
+            return input("Escolha (1-4): ").strip()
+
+        if self.caixa < 45_000.0:
+            return "4"
+        if self.produto_qualidade < 65:
+            return "2"
+        return random.choice(["1", "1", "2", "4"])
+
+    def executar_acao(self, escolha: str) -> None:
+        if escolha == "1":
+            custo = 22_000.0
+            if self.caixa >= custo:
+                self.caixa -= custo
+                novos = int(random.randint(50, 130) * (self.produto_qualidade / 60.0))
+                self.usuarios += novos
+                self.receita_mensal += novos * random.uniform(28.0, 50.0)
+                print(f"[CRESCIMENTO] Campanha atraiu +{novos} usuários.")
+            else:
+                print("[CAIXA] Sem saldo suficiente para campanha de aquisição.")
+        elif escolha == "2":
+            custo = 18_000.0
+            if self.caixa >= custo:
+                self.caixa -= custo
+                melhoria = random.randint(8, 15)
+                self.produto_qualidade += melhoria
+                self.receita_mensal *= 1.06
+                print(f"[PRODUTO] Qualidade subiu +{melhoria} pontos e retenção melhorou.")
+            else:
+                print("[CAIXA] Sem saldo suficiente para melhorar o produto.")
+        elif escolha == "3":
+            custo_entrada = 15_000.0
+            if self.caixa >= custo_entrada:
+                self.caixa -= custo_entrada
+                self.equipe += 1
+                self.custo_fixo += 6_500.0
+                self.produto_qualidade += 5
+                self.receita_mensal += 2_200.0
+                print("[EQUIPE] Novo profissional contratado; capacidade de entrega ampliada.")
+            else:
+                print("[CAIXA] Sem saldo para contratação.")
+        elif escolha == "4":
+            self.tentar_captacao()
+        else:
+            print("[OPERAÇÃO] Foco em estabilidade operacional neste mês.")
+
+    def tentar_captacao(self) -> None:
+        inv = random.choice(INVESTIDORES)
+        if self.usuarios >= inv.exigencia_tracao:
+            aporte = inv.aporte_base * random.uniform(0.9, 1.25)
+            self.caixa += aporte
+            msg = f"Rodada fechada com {inv.nome} (+R$ {aporte:,.2f})!"
+            print(f"[INVESTIMENTO] {msg}")
+            self.historico.append(f"Mês {self.mes_atual}: {msg}")
+        else:
+            print(
+                f"[INVESTIMENTO] {inv.nome} pediu {inv.exigencia_tracao} usuários "
+                f"(atual: {self.usuarios}). Aporte adiado."
+            )
+
+    def fechar_mes(self) -> bool:
+        resultado_mensal = self.receita_mensal - self.custo_fixo
+        self.caixa += resultado_mensal
+        print(f"[FECHAMENTO] Resultado operacional do mês: R$ {resultado_mensal:+,.2f}")
+        if self.caixa <= 0:
